@@ -15,13 +15,13 @@ Both commands are safe to re-run; the pipeline is idempotent.
 ## Running Tests
 
 ```bash
-pytest tests/ -v
+python3 -m pytest tests/ -v
 ```
 
 ## Running the Example Queries
 
 ```bash
-python -c "
+python3 -c "
 import duckdb
 conn = duckdb.connect('curated/genomics.duckdb')
 print(conn.sql(open('queries/01_variants_in_gene_by_tissue.sql').read()).df().to_string())
@@ -42,7 +42,7 @@ duckdb curated/genomics.duckdb
 
 Holds clinical and administrative metadata for each sample. All values from the manifest are normalized before loading (see Cleaning section below).
 
-**`variants`** — grain: one row per `(sample_id, chrom, pos, ref, alt)`
+**`variants`** — grain: one row per `(sample_id, batch_id, chrom, pos, ref, alt)`
 
 One row per mutation per sample. Consequence annotations (gene, HGVS notation, impact tier) are inlined from the VCF CSQ field. `vaf` is always stored in the 0.0–1.0 fraction range regardless of how the source file expressed it.
 
@@ -58,7 +58,7 @@ One row per mutation per sample. Consequence annotations (gene, HGVS notation, i
 
 **Additive schema migration.** New columns from batch_2026_02 (`library_prep`, `ccf`, `gnomad_af_popmax`, `mane_select`) are included in the initial DDL as nullable columns. Batch_2026_01 rows carry NULL for these fields. No DDL changes are required when batch_2026_02 arrives, and no batch_2026_01 queries break.
 
-**Idempotency via `ON CONFLICT DO NOTHING`.** Running the pipeline twice produces identical results. Primary keys are `(sample_id, batch_id)` for samples and `(sample_id, chrom, pos, ref, alt)` for variants.
+**Idempotency via `ON CONFLICT DO NOTHING`.** Running the pipeline twice produces identical results. Primary keys are `(sample_id, batch_id)` for samples and `(sample_id, batch_id, chrom, pos, ref, alt)` for variants.
 
 ---
 

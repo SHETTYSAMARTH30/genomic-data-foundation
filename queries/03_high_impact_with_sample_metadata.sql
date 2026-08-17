@@ -11,7 +11,7 @@ SELECT
     v.hotspot,
     v.caller
 FROM variants v
-JOIN samples s USING (sample_id)
+JOIN samples s ON v.sample_id = s.sample_id AND v.batch_id = s.batch_id
 WHERE v.impact = 'HIGH'
   AND v.filter = 'PASS'
   AND s.qc_status = 'PASS'

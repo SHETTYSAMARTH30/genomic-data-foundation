@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS variants (
     dp               INTEGER,
     vaf              FLOAT,
     ingested_at      TIMESTAMP,
-    PRIMARY KEY (sample_id, chrom, pos, ref, alt)
+    PRIMARY KEY (sample_id, batch_id, chrom, pos, ref, alt)
 )
 """
 
@@ -100,7 +100,7 @@ def upsert_variants(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> int:
     sql = f"""
         INSERT INTO variants ({', '.join(_VARIANT_COLS)})
         VALUES ({placeholders})
-        ON CONFLICT (sample_id, chrom, pos, ref, alt) DO NOTHING
+        ON CONFLICT (sample_id, batch_id, chrom, pos, ref, alt) DO NOTHING
     """
     for row in rows:
         values = [row.get(c) for c in _VARIANT_COLS[:-1]] + [now]

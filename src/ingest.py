@@ -59,6 +59,10 @@ def ingest_batch(batch_path: str, db_path: str = DEFAULT_DB) -> None:
             logger.error("  %s: FAILED — %s", vcf_path.name, exc)
             skipped += 1
 
+    vcf_sample_ids = {vcf_path.stem.split(".")[0] for vcf_path in vcf_files}
+    for sid in manifest_ids - vcf_sample_ids:
+        logger.warning("sample %s has manifest entry but no VCF file", sid)
+
     conn.close()
     logger.info("Done. %d variants loaded, %d file(s) skipped.", total, skipped)
 

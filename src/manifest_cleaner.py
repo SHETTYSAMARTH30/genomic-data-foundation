@@ -83,10 +83,15 @@ def clean_manifest(csv_path: str) -> list[dict]:
     Read a sample manifest CSV, normalise every field, deduplicate on
     (sample_id, batch_id) keeping the most complete row, and return a list
     of normalised dicts.
+
+    Tie-breaker: when two rows have equal completeness, prefer the row whose
+    raw tumor_purity was a decimal (not a percentage string), per design spec.
     """
     raw_rows: list[dict] = []
     with open(csv_path, newline="", encoding="utf-8") as f:
         for raw in csv.DictReader(f):
+            raw_purity = raw.get("tumor_purity", "")
+            purity_was_percent = "%" in str(raw_purity)
             raw_rows.append({
                 "sample_id":           raw.get("sample_id", "").strip(),
                 "batch_id":            raw.get("batch_id", "").strip(),
@@ -95,7 +100,7 @@ def clean_manifest(csv_path: str) -> list[dict]:
                 "tissue":              raw.get("tissue", "").strip().lower() or None,
                 "diagnosis":           raw.get("diagnosis", "").strip() or None,
                 "disease_group":       raw.get("disease_group", "").strip() or None,
-                "tumor_purity":        normalize_purity(raw.get("tumor_purity", "")),
+                "tumor_purity":        normalize_purity(raw_purity),
                 "sex_reported":        normalize_sex(raw.get("sex_reported", "")),
                 "sex_inferred":        normalize_sex(raw.get("sex_inferred", "")),
                 "sequencing_platform": normalize_platform(raw.get("sequencing_platform", "")),
@@ -104,19 +109,32 @@ def clean_manifest(csv_path: str) -> list[dict]:
                 # library_prep is present in batch 2 manifests; absent columns
                 # are returned as None by dict.get with a default of None.
                 "library_prep":        (raw.get("library_prep") or "").strip() or None,
+                "_purity_was_percent": purity_was_percent,
             })
 
-    seen: dict[tuple, dict] = {}
+    # Group rows by (sample_id, batch_id) and keep the best candidate.
+    # Sort key: highest completeness first; when tied, prefer decimal purity
+    # (purity_was_percent=False sorts before True).
+    groups: dict[tuple, list[dict]] = {}
     for row in raw_rows:
         key = (row["sample_id"], row["batch_id"])
-        if key in seen:
+        groups.setdefault(key, []).append(row)
+
+    seen: dict[tuple, dict] = {}
+    for key, candidates in groups.items():
+        if len(candidates) > 1:
             logger.warning(
                 "Duplicate manifest row for %s/%s — keeping most complete",
-                row["sample_id"], row["batch_id"],
+                key[0], key[1],
             )
-            if _completeness(row) > _completeness(seen[key]):
-                seen[key] = row
-        else:
-            seen[key] = row
+        best = sorted(
+            candidates,
+            key=lambda r: (-_completeness(r), r.get("_purity_was_percent", False)),
+        )[0]
+        seen[key] = best
+
+    # Strip the internal helper key before returning.
+    for row in seen.values():
+        row.pop("_purity_was_percent", None)
 
     return list(seen.values())

@@ -121,6 +121,8 @@ def test_clean_manifest_deduplicates_s0011(tmp_path):
     rows = clean_manifest(str(p))
     s0011 = [r for r in rows if r["sample_id"] == "S-0011"]
     assert len(s0011) == 1
+    # Design spec: keep the decimal-format purity row (0.64), not the percentage row (57% -> 0.57)
+    assert s0011[0]["tumor_purity"] == pytest.approx(0.64)
 
 
 def test_clean_manifest_batch1_all_purities_in_range():

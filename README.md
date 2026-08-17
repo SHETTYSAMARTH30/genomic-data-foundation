@@ -3,6 +3,7 @@
 ## Quick Start
 
 ```bash
+# Python 3.9.6 required
 pip install -r requirements.txt
 
 python src/ingest.py --batch data/batch_2026_01
@@ -27,10 +28,10 @@ print(conn.sql(open('queries/01_variants_in_gene_by_tissue.sql').read()).df().to
 "
 ```
 
-Or open an interactive session:
+Or open an interactive DuckDB session:
 
 ```bash
-python -c "import duckdb; conn = duckdb.connect('curated/genomics.duckdb')"
+duckdb curated/genomics.duckdb
 ```
 
 ---

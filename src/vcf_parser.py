@@ -56,6 +56,30 @@ def _parse_ad(ad_str: str) -> tuple[int | None, int | None]:
         return None, None
 
 
+def _safe_int(val: str | None) -> int | None:
+    """Safely parse an integer from a string, handling None and '.' values."""
+    if val is None or val == ".":
+        return None
+    try:
+        return int(val)
+    except ValueError:
+        return None
+
+
+def _float_from_info(info: dict, key: str) -> float | None:
+    """Extract and parse a float value from the INFO dict.
+
+    Returns None if the key is not present, is a flag (True), or cannot be parsed.
+    """
+    v = info.get(key)
+    if v is None or v is True:
+        return None
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return None
+
+
 def parse_vcf(vcf_path: str, sample_id: str, batch_id: str) -> list[dict]:
     """Parse a VCF file and return a list of variant dicts.
 
@@ -94,6 +118,14 @@ def parse_vcf(vcf_path: str, sample_id: str, batch_id: str) -> list[dict]:
 
             fmt_keys = fmt_str.split(":")
             fmt_vals = sample_str.split(":")
+
+            if len(fmt_keys) != len(fmt_vals):
+                logger.warning(
+                    "%s line %d: FORMAT has %d fields but sample column has %d values — skipping",
+                    path.name, lineno, len(fmt_keys), len(fmt_vals),
+                )
+                continue
+
             fmt = dict(zip(fmt_keys, fmt_vals))
 
             ad_ref, ad_alt = _parse_ad(fmt.get("AD", ""))
@@ -108,15 +140,6 @@ def parse_vcf(vcf_path: str, sample_id: str, batch_id: str) -> list[dict]:
             except ValueError:
                 qual_val = None
 
-            def _float(key: str) -> float | None:
-                v = info.get(key)
-                if v is None or v is True:
-                    return None
-                try:
-                    return float(v)
-                except (ValueError, TypeError):
-                    return None
-
             variants.append({
                 "sample_id":        sample_id,
                 "batch_id":         batch_id,
@@ -128,15 +151,15 @@ def parse_vcf(vcf_path: str, sample_id: str, batch_id: str) -> list[dict]:
                 "qual":             qual_val,
                 "filter":           filter_,
                 "caller":           info.get("CALLER"),
-                "max_pop_af":       _float("MAX_POP_AF"),
+                "max_pop_af":       _float_from_info(info, "MAX_POP_AF"),
                 "hotspot":          bool(info.get("HOTSPOT", False)),
-                "ccf":              _float("CCF"),
-                "gnomad_af_popmax": _float("GNOMAD_AF_POPMAX"),
+                "ccf":              _float_from_info(info, "CCF"),
+                "gnomad_af_popmax": _float_from_info(info, "GNOMAD_AF_POPMAX"),
                 **csq,
                 "gt":     fmt.get("GT"),
                 "ad_ref": ad_ref,
                 "ad_alt": ad_alt,
-                "dp":     int(fmt["DP"]) if "DP" in fmt else None,
+                "dp":     _safe_int(fmt.get("DP")),
                 "vaf":    vaf,
             })
 

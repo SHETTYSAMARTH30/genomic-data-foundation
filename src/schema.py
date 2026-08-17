@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import duckdb
 
 SAMPLES_DDL = """
@@ -79,7 +79,7 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
 def upsert_samples(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> int:
     if not rows:
         return 0
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     placeholders = ", ".join("?" * len(_SAMPLE_COLS))
     sql = f"""
         INSERT INTO samples ({', '.join(_SAMPLE_COLS)})
@@ -95,7 +95,7 @@ def upsert_samples(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> int:
 def upsert_variants(conn: duckdb.DuckDBPyConnection, rows: list[dict]) -> int:
     if not rows:
         return 0
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     placeholders = ", ".join("?" * len(_VARIANT_COLS))
     sql = f"""
         INSERT INTO variants ({', '.join(_VARIANT_COLS)})

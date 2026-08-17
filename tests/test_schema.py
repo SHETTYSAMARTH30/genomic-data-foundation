@@ -48,6 +48,14 @@ def test_upsert_samples_inserts_row(tmp_path):
     conn.close()
 
 
+def test_upsert_variants_inserts_row(tmp_path):
+    conn = init_db(str(tmp_path / "test.duckdb"))
+    count = upsert_variants(conn, [_variant_row()])
+    assert count == 1
+    assert conn.execute("SELECT COUNT(*) FROM variants").fetchone()[0] == 1
+    conn.close()
+
+
 def test_upsert_samples_idempotent(tmp_path):
     conn = init_db(str(tmp_path / "test.duckdb"))
     upsert_samples(conn, [_sample_row()])

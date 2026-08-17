@@ -6,8 +6,8 @@
 # Python 3.9.6 required
 pip install -r requirements.txt
 
-python src/ingest.py --batch data/batch_2026_01
-python src/ingest.py --batch data/batch_2026_02
+python3 src/ingest.py --batch data/batch_2026_01
+python3 src/ingest.py --batch data/batch_2026_02
 ```
 
 Both commands are safe to re-run; the pipeline is idempotent.

@@ -33,18 +33,26 @@ def test_batch1_loads_variants(db_path):
 
 def test_batch1_idempotent(db_path):
     ingest_batch("data/batch_2026_01", db_path)
-    count_after_first = duckdb.connect(db_path).execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn = duckdb.connect(db_path)
+    count_after_first = conn.execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn.close()
     ingest_batch("data/batch_2026_01", db_path)
-    count_after_second = duckdb.connect(db_path).execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn = duckdb.connect(db_path)
+    count_after_second = conn.execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn.close()
     assert count_after_first == count_after_second
 
 
 def test_batch2_loads_additively(db_path):
     ingest_batch("data/batch_2026_01", db_path)
-    count_b1 = duckdb.connect(db_path).execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn = duckdb.connect(db_path)
+    count_b1 = conn.execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn.close()
 
     ingest_batch("data/batch_2026_02", db_path)
-    count_b2 = duckdb.connect(db_path).execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn = duckdb.connect(db_path)
+    count_b2 = conn.execute("SELECT COUNT(*) FROM variants").fetchone()[0]
+    conn.close()
 
     assert count_b2 > count_b1
 
